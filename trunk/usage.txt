@@ -1,3 +1,9 @@
+INSTALL
+Move the IMU folder to your arduino_path/hardware/libraries
+
+USING IMU
+#include <IMU.h>
+
 Declare an IMU handler, pass the serial port which is connected to the IMU
 IMU imuHandler(&Serial1);
 
