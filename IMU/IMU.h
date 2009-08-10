@@ -29,12 +29,11 @@
 
 // misc
 #define d2r 0.01745329252
-#define PACKET_LENGTH 34
-#define PACKET_LENGTH_PLUSONE 35
+#define PACKET_LENGTH 32
 
 // ADXRS150 mv per degree (my v1 has these gyros on all 3 boards)
 // If you have a different one, set the scale value here
-#define gyro_mvTheta 0.0125
+#define gyro_mVtheta 0.0125
 
 // Scale factors to get volts from ADC
 #define a2v_8bit 0.01953125
@@ -55,7 +54,7 @@ class IMU {
 		void start();
 		void stop();
 		void setNulls();
-		bool packetReady();
+		int packetReady();
 
 		// filtered data
 		float f_accel[3];
@@ -68,7 +67,7 @@ class IMU {
 		// imu packet data
 		uint8_t _imuBuffLen;
 		unsigned char _imuBuffer[PACKET_LENGTH];
-		bool _startFlag;
+		int _startFlag;
 
 		// serial point
 		HardwareSerial *_serialPort;

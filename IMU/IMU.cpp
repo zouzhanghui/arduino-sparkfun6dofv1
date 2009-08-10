@@ -29,7 +29,7 @@
 
 IMU::IMU(HardwareSerial *serialPort) {
 	_serialPort = serialPort;
-	_startFlag = false;
+	_startFlag = 0;
 	_imuBuffLen = 0;
 	memset(_imuBuffer, 0, sizeof(_imuBuffer));
 }
@@ -82,37 +82,31 @@ void IMU::setNulls() {
 	_raw_accel_null[2][1] = 504;
 }
 
-bool IMU::packetReady() {
-	while (_serialPort->available()) {
-		if (_startFlag) 
-			_imuBuffer[_imuBuffLen++] = _serialPort->read();
-		else {
-			if (_serialPort->read() == 'A') {
-				_startFlag = true;
-				_imuBuffer[_imuBuffLen++] = 'A';
-			}
-		}
-
-		if (_imuBuffLen == PACKET_LENGTH_PLUSONE) {
-			if (_imuBuffer[0] == 'A' && _imuBuffer[33] == 'Z') {
-				this->parsePacket();
-				this->filterData();
-				_startFlag = false;
-				_imuBuffLen = 0;
-				return true;
-			}
-
-			// full buffer but no valid data. flush
-			_startFlag = false;
-			_imuBuffLen = 0;
-		}
-	}
-	return false;
+int IMU::packetReady() {
+	int i;
+	
+	// test for packet + header + footer
+	if (_serialPort->available() < PACKET_LENGTH+2)
+		return 0;
+	
+	if (_serialPort->read() != 'A')
+		return 0;
+	
+	for (i=0; i<PACKET_LENGTH; i++)
+		_imuBuffer[i] = _serialPort->read();
+	
+	if (_serialPort->read() != 'Z')
+		return 0;
+	
+	this->parsePacket();
+	this->filterData();
+	
+	return 1;
 }
 
 void IMU::parsePacket() {
 	// skip 'A'
-	unsigned char *ptr = &_imuBuffer[1];
+	unsigned char *ptr = _imuBuffer;
 
 	// pitch board
 	ptr += 0; memcpy(&_raw_rate[1], ptr, 2); // gyro rateout
@@ -182,9 +176,8 @@ void IMU::filterData() {
 	// Z acceleration: pitch board->x value + roll board->x value 
 	f_accel[2] = ((float)_raw_accel[0][1] + (float)_raw_accel[1][1])/2.0;
 
-	// parse gyro values:
-	// a2v_10bit * measurement / degrees per volt
-	// 0.0125 volt per degree
-	// multiply 0.0125 by 0.01745329252 to rads
-	for (int i=0; i<3; i++) f_rate[i] = (((_raw_rate[i] - _raw_rate_null[i]) * a2v_10bit) / 0.0125) * d2r;
+	// parse gyro values
+	f_rate[0] = (_raw_rate[0] - _raw_rate_null[0]) * a2rad_10bit;
+  f_rate[1] = (_raw_rate[1] - _raw_rate_null[1]) * a2rad_10bit;
+  f_rate[2] = (_raw_rate[2] - _raw_rate_null[2]) * a2rad_10bit;
 }
