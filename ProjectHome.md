@@ -1,0 +1,1 @@
+An arduino library to get data from the 6DOFv1. Real simple to use.
